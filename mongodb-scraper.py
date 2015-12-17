@@ -41,8 +41,15 @@ def scrape():
             continue
 
         mongo_logger.info("Connecting to " + ip)
-        client = MongoClient(ip, connectTimeoutMS=5000)
-        dbs = client.database_names()
+
+        try:
+            client = MongoClient(ip, connectTimeoutMS=5000)
+            dbs = client.database_names()
+        except:
+            mongo_logger.warning("An error occurred while connecting to " + ip + ". Skipping")
+            # Don't cry if we can't connect to the server
+            processed.append(ip)
+            continue
 
         mongo_logger.info("Found " + str(len(dbs)) + " databases")
         mongo_logger.debug("Database found: " + ', '.join(dbs))
@@ -79,8 +86,10 @@ def scrape():
                     for key, value in row.iteritems():
                         # Is that a column we're interested into?
                         if any(column in key for column in column_names):
-                            interesting = True
-                            break
+                            # Only consider plain strings, nothing fancy
+                            if isinstance(value, basestring):
+                                interesting = True
+                                break
 
                 # This collection has no interesting data? Let's skip it
                 if not interesting:
