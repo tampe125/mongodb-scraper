@@ -74,11 +74,13 @@ def scrape():
                 row = o_coll.find_one()
                 interesting = False
 
-                for key, value in row.iteritems():
-                    # Is that a column we're interested into?
-                    if any(column in key for column in column_names):
-                        interesting = True
-                        break
+                # If the collection is empty I get a null row
+                if row:
+                    for key, value in row.iteritems():
+                        # Is that a column we're interested into?
+                        if any(column in key for column in column_names):
+                            interesting = True
+                            break
 
                 # This collection has no interesting data? Let's skip it
                 if not interesting:
@@ -86,6 +88,9 @@ def scrape():
 
                 rows = o_coll.find()
                 total = rows.count()
+
+                if total > 750:
+                    mongo_logger.info("***FOUND COLLECTION WITH MORE THAN 750 RECORDS. JUICY!!")
 
                 lines = []
                 for row in rows:
