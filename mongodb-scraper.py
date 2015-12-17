@@ -1,8 +1,14 @@
 import logging
+import json
 from colorlog import ColoredFormatter
 from pymongo import MongoClient
 
-ips = []
+try:
+    with open('data.json', 'r') as data_json:
+        ips = json.load(data_json)
+except (IOError, ValueError):
+    print "Please provide a valid JSON encoded file in data.json"
+    exit()
 
 mongo_logger = logging.getLogger('mongodb-scraper')
 logging.basicConfig(level=logging.DEBUG,
