@@ -167,8 +167,8 @@ def scrape():
                             continue
 
                     # If I get a very long list, let's write it in batches
-                    if len(lines) >= 127:
-                        mongo_logger.info("\t\tFetched more than 100 records, dumping them to file")
+                    if len(lines) >= 1000:
+                        mongo_logger.info("\t\tFetched more than 1000 records, dumping them to file")
                         with io.open('data/combo.txt', 'a', encoding='utf-8') as fp_pass:
                             fp_pass.writelines(lines)
                             lines = []
