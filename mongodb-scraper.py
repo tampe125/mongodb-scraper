@@ -4,6 +4,7 @@ import json
 import re
 from colorlog import ColoredFormatter
 from pymongo import MongoClient
+import io
 
 
 def scrape():
@@ -159,20 +160,20 @@ def scrape():
 
                                 value = value.encode('utf-8') + ':' + salt
 
-                                lines.append(ip.encode('utf-8') + '|' + email + ':' + value + '\n')
+                                lines.append(unicode(ip.encode('utf-8') + '|' + email + ':' + value + '\n'))
                         except UnicodeDecodeError:
                             # You know what? I'm done dealing with all those crazy encodings
                             mongo_logger.warn("An error occurred while encoding the string. Skipping")
                             continue
 
                     # If I get a very long list, let's write it in batches
-                    if len(lines) > 100000:
-                        mongo_logger.info("\t\tFetched more than 100.000 records, dumping them to file")
-                        with open('combo.txt', 'a') as fp_pass:
+                    if len(lines) >= 127:
+                        mongo_logger.info("\t\tFetched more than 100 records, dumping them to file")
+                        with io.open('data/combo.txt', 'a', encoding='utf-8') as fp_pass:
                             fp_pass.writelines(lines)
                             lines = []
 
-                with open('combo.txt', 'a') as fp_pass:
+                with io.open('data/combo.txt', 'a', encoding='utf-8') as fp_pass:
                     fp_pass.writelines(lines)
 
         client.close()
