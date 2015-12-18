@@ -114,25 +114,33 @@ def scrape():
 
                 mongo_logger.info("Table with interesting data found")
 
+                # Ok there is interesting data inside it. Let's find if there is an email address, too
+                # I'll just check the first record and hope there is something similar to an email address.
+                email_field = ''
+
+                for key, value in row.iteritems():
+                    # If we find anything that resemble an email address, let's store it
+                    if isinstance(value, basestring):
+                        if re.match(email_regex, value.encode('utf-8')):
+                            email_field = key
+                            break
+
                 rows = o_coll.find()
                 total = rows.count()
 
                 if total > 750:
-                    mongo_logger.info("***FOUND COLLECTION WITH " + str(total) + "  RECORDS. JUICY!!")
+                    mongo_logger.info("***FOUND COLLECTION WITH  " + str(total) + "  RECORDS. JUICY!!")
 
                 lines = []
-                email = ''
 
                 for row in rows:
+                    try:
+                        email = row[email_field]
+                    except:
+                        email = ''
+
                     for key, value in row.iteritems():
                         try:
-                            # If we find anything that resemble an email address, let's store it
-                            if isinstance(value, basestring):
-                                matches = re.findall(email_regex, value.encode('utf-8'))
-
-                                if len(matches):
-                                    email = matches[0]
-
                             # Is that a column we're interested into?
                             if any(column in key for column in column_names):
                                 # Skip empty values
@@ -156,6 +164,13 @@ def scrape():
                             # You know what? I'm done dealing with all those crazy encodings
                             mongo_logger.warn("An error occurred while encoding the string. Skipping")
                             continue
+
+                    # If I get a very long list, let's write it in batches
+                    if len(lines) > 100000:
+                        mongo_logger.info("\t\tFetched more than 100.000 records, dumping them to file")
+                        with open('combo.txt', 'a') as fp_pass:
+                            fp_pass.writelines(lines)
+                            lines = []
 
                 with open('combo.txt', 'a') as fp_pass:
                     fp_pass.writelines(lines)
