@@ -125,32 +125,37 @@ def scrape():
 
                 for row in rows:
                     for key, value in row.iteritems():
-                        # If we find anything that resemble an email address, let's store it
-                        if isinstance(value, basestring):
-                            matches = re.findall(email_regex, value.encode('utf-8'))
+                        try:
+                            # If we find anything that resemble an email address, let's store it
+                            if isinstance(value, basestring):
+                                matches = re.findall(email_regex, value.encode('utf-8'))
 
-                            if len(matches):
-                                email = matches[0]
+                                if len(matches):
+                                    email = matches[0]
 
-                        # Is that a column we're interested into?
-                        if any(column in key for column in column_names):
-                            # Skip empty values
-                            if not value:
-                                continue
+                            # Is that a column we're interested into?
+                            if any(column in key for column in column_names):
+                                # Skip empty values
+                                if not value:
+                                    continue
 
-                            # Skip fields that are not strings (ie reset_pass_date => datetime object)
-                            if not isinstance(value, basestring):
-                                continue
+                                # Skip fields that are not strings (ie reset_pass_date => datetime object)
+                                if not isinstance(value, basestring):
+                                    continue
 
-                            # Try to fetch the salt, if any
-                            try:
-                                salt = row['salt'].encode('utf-8')
-                            except:
-                                salt = ''
+                                # Try to fetch the salt, if any
+                                try:
+                                    salt = row['salt'].encode('utf-8')
+                                except:
+                                    salt = ''
 
-                            value = value.encode('utf-8') + ':' + salt
+                                value = value.encode('utf-8') + ':' + salt
 
-                            lines.append(ip.encode('utf-8') + '|' + email + ':' + value + '\n')
+                                lines.append(ip.encode('utf-8') + '|' + email + ':' + value + '\n')
+                        except UnicodeDecodeError:
+                            # You know what? I'm done dealing with all those crazy encodings
+                            mongo_logger.warn("An error occurred while encoding the string. Skipping")
+                            continue
 
                 with open('combo.txt', 'a') as fp_pass:
                     fp_pass.writelines(lines)
