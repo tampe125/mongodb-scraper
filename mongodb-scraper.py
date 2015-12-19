@@ -137,6 +137,8 @@ def scrape():
                 for row in rows:
                     try:
                         email = row[email_field]
+                        if not email:
+                            email = ''
                     except:
                         email = ''
 
@@ -155,6 +157,8 @@ def scrape():
                                 # Try to fetch the salt, if any
                                 try:
                                     salt = row['salt'].encode('utf-8')
+                                    if not salt:
+                                        salt = ''
                                 except:
                                     salt = ''
 
