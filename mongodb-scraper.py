@@ -85,6 +85,8 @@ class MongodbScraper:
                 if db in ['admin', 'local']:
                     continue
 
+                self.logger.debug("\t\tAnalyzing db: " + db)
+
                 o_db = client[db]
 
                 try:
@@ -97,6 +99,9 @@ class MongodbScraper:
                     break
 
                 for collection in collections:
+                    if collection in ['system.index']:
+                        continue
+
                     self.logger.debug("\t\tAnalyzing collection: " + collection)
                     # Is this a collection I'm interested into?
                     if not any(table in collection for table in self.table_names):
@@ -185,7 +190,7 @@ class MongodbScraper:
 
                         # If I get a very long list, let's write it in batches
                         if len(lines) >= 1000:
-                            self.logger.info("\t\tFetched more than 1000 records, dumping them to file")
+                            self.logger.info("\t\tWriting " + str(len(lines)) + "/" + str(total) + " records")
                             with io.open('data/combo.txt', 'a', encoding='utf-8') as fp_pass:
                                 fp_pass.writelines(lines)
                                 lines = []
