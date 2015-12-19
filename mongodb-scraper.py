@@ -38,6 +38,9 @@ class MongodbScraper:
         # Load previous data
         self._load_data()
 
+        # Load settings
+        self._load_settings()
+
     def _load_data(self):
         self.logger.info("Opening data")
 
@@ -58,6 +61,15 @@ class MongodbScraper:
 
         if self.processed:
             self.logger.info("Found " + str(len(self.processed)) + " already processed IP")
+
+    def _load_settings(self):
+        try:
+            with open('settings.json', 'r') as settings_json:
+                self.settings = json.load(settings_json)
+
+            self.logger.info("Settings file found")
+        except (IOError, ValueError):
+            self.logger.info("Settings file not found")
 
     def scrape(self):
         for ip in self.ips:

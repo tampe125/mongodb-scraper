@@ -1,0 +1,13 @@
+{
+  "email" : {
+    "threshold" : 1000000,
+    "from" : "",
+    "to" : "",
+    "smtp" : {
+      "host" : "",
+      "port" : "",
+      "user" : "",
+      "password" : ""
+    }
+  }
+}
