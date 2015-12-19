@@ -5,9 +5,13 @@ import re
 from colorlog import ColoredFormatter
 from pymongo import MongoClient
 import io
+import os
 
 
 def scrape():
+    if not os.path.exists('data'):
+        os.makedirs('data')
+
     mongo_logger = logging.getLogger('mongodb-scraper')
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s|%(levelname)-8s| %(message)s',
