@@ -1,5 +1,6 @@
 # coding=utf-8
 import logging
+import logging.handlers
 import json
 import re
 from colorlog import ColoredFormatter
@@ -23,10 +24,16 @@ class MongodbScraper:
 
         # Init the logger
         self.logger = logging.getLogger('mongodb-scraper')
-        logging.basicConfig(level=logging.DEBUG,
-                            format='%(asctime)s|%(levelname)-8s| %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S',
-                            filename='mongodb-scraper.log')
+        self.logger.setLevel(logging.DEBUG)
+
+        # Create a rotation logging, so we won't have and endless file
+        rotate = logging.handlers.RotatingFileHandler(
+                        'mongodb-scraper.log', maxBytes=(5 * 1024 * 1024), backupCount=3)
+        rotate.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s|%(levelname)-8s| %(message)s')
+        rotate.setFormatter(formatter)
+
+        self.logger.addHandler(rotate)
 
         console = logging.StreamHandler()
         console.setLevel(logging.INFO)
