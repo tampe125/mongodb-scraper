@@ -18,7 +18,7 @@ class MongodbScraper:
         self.settings = {}
         self.ips = []
         self.processed = []
-        self.table_names = ['account', 'user', 'subscriber']
+        self.table_names = ['account', 'user', 'subscriber', 'customer']
         self.column_names = ['pass', 'pwd']
         self.email_regex = re.compile(r'[a-z0-9\-\._]+@[a-z0-9\-\.]+\.[a-z]{2,4}')
 
@@ -152,8 +152,6 @@ Rows: {2}
                 self.processed.append(ip)
                 continue
 
-            self.logger.debug("Database found: " + ', '.join(dbs))
-
             for db in dbs:
                 # Skip local system databases
                 if db in ['admin', 'local']:
@@ -205,7 +203,7 @@ Rows: {2}
                     if not interesting:
                         continue
 
-                    self.logger.info("Table with interesting data found")
+                    self.logger.info("** Table with interesting data found")
 
                     # Ok there is interesting data inside it. Let's find if there is an email address, too
                     # I'll just check the first record and hope there is something similar to an email address.
