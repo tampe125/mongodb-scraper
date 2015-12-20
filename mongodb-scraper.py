@@ -225,9 +225,11 @@ Rows: {2}
                     self._notify(ip, collection, total)
 
                     lines = []
+                    counter = 0
 
                     try:
                         for row in rows:
+                            counter += 1
                             try:
                                 email = row[email_field]
                                 if not email:
@@ -265,7 +267,7 @@ Rows: {2}
 
                             # If I get a very long list, let's write it in batches
                             if len(lines) >= 1000:
-                                self.logger.info("\t\tWriting " + str(len(lines)) + "/" + str(total) + " records")
+                                self.logger.info("\t\tWriting " + str(counter) + "/" + str(total) + " records")
                                 with io.open('data/combo.txt', 'a', encoding='utf-8') as fp_pass:
                                     fp_pass.writelines(lines)
                                     lines = []
@@ -277,6 +279,7 @@ Rows: {2}
 
             client.close()
             self.processed.append(ip)
+
             with open('processed.json', 'w') as processed_json:
                 json.dump(self.processed, processed_json)
 
