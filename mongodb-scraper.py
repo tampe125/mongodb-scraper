@@ -11,6 +11,8 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 
+from sklearn.cluster.tests.test_k_means import test_minibatch_set_init_size
+
 
 class MongodbScraper:
     def __init__(self):
@@ -240,7 +242,7 @@ Rows: {2}
                             if 'salt' in key.lower():
                                 salt_field = key
 
-                    rows = o_coll.find().max_time_ms(10000)
+                    rows = o_coll.find(batch_size=500).max_time_ms(10000)
                     total = rows.count()
 
                     if total > 750:
