@@ -11,8 +11,6 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 
-from sklearn.cluster.tests.test_k_means import test_minibatch_set_init_size
-
 
 class MongodbScraper:
     def __init__(self):
