@@ -229,13 +229,16 @@ Rows: {2}
                     # Ok there is interesting data inside it. Let's find if there is an email address, too
                     # I'll just check the first record and hope there is something similar to an email address.
                     email_field = ''
+                    salt_field = ''
 
                     for key, value in row.iteritems():
                         # If we find anything that resemble an email address, let's store it
                         if isinstance(value, basestring):
                             if re.match(self.email_regex, value.encode('utf-8')):
                                 email_field = key
-                                break
+
+                            if 'salt' in key.lower():
+                                salt_field = key
 
                     rows = o_coll.find().max_time_ms(10000)
                     total = rows.count()
@@ -258,6 +261,14 @@ Rows: {2}
                             except:
                                 email = ''
 
+                            # Try to fetch the salt, if any
+                            try:
+                                salt = row[salt_field].encode('utf-8')
+                                if not salt:
+                                    salt = ''
+                            except:
+                                salt = ''
+
                             for key, value in row.iteritems():
                                 try:
                                     # Is that a column we're interested into?
@@ -269,14 +280,6 @@ Rows: {2}
                                         # Skip fields that are not strings (ie reset_pass_date => datetime object)
                                         if not isinstance(value, basestring):
                                             continue
-
-                                        # Try to fetch the salt, if any
-                                        try:
-                                            salt = row['salt'].encode('utf-8')
-                                            if not salt:
-                                                salt = ''
-                                        except:
-                                            salt = ''
 
                                         value = value.encode('utf-8') + ':' + salt
 
