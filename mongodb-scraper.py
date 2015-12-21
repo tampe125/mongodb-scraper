@@ -294,6 +294,10 @@ Rows: {2}
                                     lines = []
                     except mongo_errors.ExecutionTimeout:
                         self.logger.warning("Cursor timed out, skipping")
+                    except mongo_errors.BSONError:
+                        self.logger.warning("Error while fetching cursor data, skipping")
+                    except:
+                        self.logger.warning("A generic error occurred while iterating over the cursors. Skipping")
 
                     with io.open('data/' + self.filename, 'a', encoding='utf-8') as fp_pass:
                         fp_pass.writelines(lines)
