@@ -19,3 +19,6 @@ You can supply a comma separate list of IPs as an additional argument `--skip` t
 ```
 python mongodb-scraper.py --skip "123.123.123.123,123.456.789.123"
 ```
+
+### Get alerts on juicy results
+If you want to get an email when you find some BIG DUMP (default when there are more than 1M of rows), simply copy the `settings-dist.json` file and rename it to `settings.json`, filling all the fields.
