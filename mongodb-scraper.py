@@ -1,4 +1,5 @@
 # coding=utf-8
+import argparse
 import logging
 import logging.handlers
 import json
@@ -49,6 +50,16 @@ class MongodbScraper:
 
         # Load previous data
         self._load_data()
+
+        # Let's parse some CLI options
+        parser = argparse.ArgumentParser()
+        parser.add_argument('-s', '--skip', help='Supply a comma separated string of IPs that should be skipped')
+
+        arguments = parser.parse_args()
+
+        if arguments.skip:
+            skip = arguments.skip.split(',')
+            self.processed += skip
 
         # Load settings
         self._load_settings()
