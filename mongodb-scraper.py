@@ -234,11 +234,14 @@ Rows: {2}
                     for key, value in row.iteritems():
                         # If we find anything that resemble an email address, let's store it
                         if isinstance(value, basestring):
-                            if re.match(self.email_regex, value.encode('utf-8')):
-                                email_field = key
+                            try:
+                                if re.match(self.email_regex, value.encode('utf-8')):
+                                    email_field = key
 
-                            if 'salt' in key.lower():
-                                salt_field = key
+                                if 'salt' in key.lower():
+                                    salt_field = key
+                            except UnicodeDecodeError:
+                                pass
 
                     rows = o_coll.find(batch_size=500).max_time_ms(10000)
                     total = rows.count()
@@ -255,7 +258,7 @@ Rows: {2}
                         for row in rows:
                             counter += 1
                             try:
-                                email = row[email_field]
+                                email = row[email_field].encode('utf-8')
                                 if not email:
                                     email = ''
                             except:
@@ -299,6 +302,8 @@ Rows: {2}
                         self.logger.warning("Cursor timed out, skipping")
                     except mongo_errors.BSONError:
                         self.logger.warning("Error while fetching cursor data, skipping")
+                    except KeyError:
+                        self.logger.warning("Manually skipping recordset")
                     except:
                         self.logger.warning("A generic error occurred while iterating over the cursors. Skipping")
 
