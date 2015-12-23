@@ -244,7 +244,7 @@ Rows: {2}
                     total = rows.count()
 
                     if total > 750:
-                        self.logger.info("***FOUND COLLECTION WITH  " + str(total).format('{:,}') + "  RECORDS. JUICY!!")
+                        self.logger.info("***FOUND COLLECTION WITH  " + '{:,}'.format(total) + "  RECORDS. JUICY!!")
 
                     self._notify(ip, collection, total)
 
@@ -291,7 +291,7 @@ Rows: {2}
 
                             # If I get a very long list, let's write it in batches
                             if len(lines) >= 1000:
-                                self.logger.info("\t\tWriting " + str(counter).format('{:,}') + "/" + str(total).format('{:,}') + " records")
+                                self.logger.info("\t\tWriting " + '{:,}'.format(counter) + "/" + '{:,}'.format(total) + " records")
                                 with io.open('data/' + self.filename, 'a', encoding='utf-8') as fp_pass:
                                     fp_pass.writelines(lines)
                                     lines = []
