@@ -40,7 +40,7 @@ class MongodbScraper:
         console = logging.StreamHandler()
         console.setLevel(logging.INFO)
 
-        formatter = ColoredFormatter("%(log_color)s[%(levelname)-4s] %(message)s%(reset)s")
+        formatter = ColoredFormatter("%(log_color)s%(asctime)s|[%(levelname)-4s] %(message)s%(reset)s", "%H:%M:%S")
         console.setFormatter(formatter)
         self.logger.addHandler(console)
 
