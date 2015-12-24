@@ -285,6 +285,10 @@ Rows: {2}
 
                             for key, value in row.iteritems():
                                 try:
+                                    # Skip fields marked as emails / salt
+                                    if key in [email_field, salt_field]:
+                                        continue
+
                                     # Is that a column we're interested into?
                                     if any(column in key for column in self.column_names):
                                         # Skip empty values
