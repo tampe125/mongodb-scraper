@@ -11,13 +11,19 @@ pip install colorlog
 ```
 
 ### Usage
+First of all create a `data.json` file, including a JSON encoded array of IPs:
+```
+["123.456.789", "987.654.321"]
+```
+If you have downloaded a report from Shodan, you can easily parse it using the script file `parse_data.py`.  
+Then simply run the scraper using the following command:
 ```
 python mongodb-scaper.py
 ```
 
 You can supply a comma separate list of IPs as an additional argument `--skip` to manually check some IPs as processed and thus exlude them from the stack
 ```
-python mongodb-scraper.py --skip "123.123.123.123,123.456.789.123"
+python mongodb-scraper.py --skip "123.123.123,123.456.789"
 ```
 
 ### Get alerts on juicy results
