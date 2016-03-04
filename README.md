@@ -1,4 +1,4 @@
-# MongoDB Scaper
+# MongoDB Scraper
 
 So accordingly to Shodan, there are more than 30k Mongodb instances publicly available, running on the standard port. Many of them are running with default settings (ie no authentication required).
 
